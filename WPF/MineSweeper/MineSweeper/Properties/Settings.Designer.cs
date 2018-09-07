@@ -25,13 +25,109 @@ namespace MineSweeper.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("ru-RU")]
+        [global::System.Configuration.DefaultSettingValueAttribute("en-US")]
         public global::System.Globalization.CultureInfo DefaultLanguage {
             get {
                 return ((global::System.Globalization.CultureInfo)(this["DefaultLanguage"]));
             }
             set {
                 this["DefaultLanguage"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int EasyLevelCountGames {
+            get {
+                return ((int)(this["EasyLevelCountGames"]));
+            }
+            set {
+                this["EasyLevelCountGames"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int MiddleLevelCountGames {
+            get {
+                return ((int)(this["MiddleLevelCountGames"]));
+            }
+            set {
+                this["MiddleLevelCountGames"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int HardLevelCountGames {
+            get {
+                return ((int)(this["HardLevelCountGames"]));
+            }
+            set {
+                this["HardLevelCountGames"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int EasyLevelWinGames {
+            get {
+                return ((int)(this["EasyLevelWinGames"]));
+            }
+            set {
+                this["EasyLevelWinGames"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int MiddleLevelWinGames {
+            get {
+                return ((int)(this["MiddleLevelWinGames"]));
+            }
+            set {
+                this["MiddleLevelWinGames"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int HardLevelWinGames {
+            get {
+                return ((int)(this["HardLevelWinGames"]));
+            }
+            set {
+                this["HardLevelWinGames"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int Level {
+            get {
+                return ((int)(this["Level"]));
+            }
+            set {
+                this["Level"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Sound {
+            get {
+                return ((bool)(this["Sound"]));
+            }
+            set {
+                this["Sound"] = value;
             }
         }
     }
