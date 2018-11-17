@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -15,20 +11,22 @@ namespace ChatServer
 {
     public partial class Form1 : Form
     {
-        TcpListener tcpListener;
-        List<Client> clients;
-        Thread listenThread;
-        bool run;
-        const string regExp = @"(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[0-9]{2}|[0-9])(\.(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[0-9]{2}|[0-9])){3}";
+        private TcpListener tcpListener;
+        private List<Client> clients;
+        private Thread listenThread;
+        private bool run;
+        private const string regExp = @"(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[0-9]{2}|[0-9])(\.(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[0-9]{2}|[0-9])){3}";
+        private bool close;
 
         public Form1()
         {
             InitializeComponent();
             run = false;
+            close = false;
             GetAddresses();
         }
 
-        void GetAddresses()
+        private void GetAddresses()
         {
             bool found = false;
             button1.Enabled = found;
@@ -70,7 +68,7 @@ namespace ChatServer
             }
         }
 
-        void EnableComponents(bool flag, string text)
+        private void EnableComponents(bool flag, string text)
         {
             button2.Enabled = flag;
             comboBox1.Enabled = flag;
@@ -78,19 +76,22 @@ namespace ChatServer
             button1.Text = text;
         }
 
-        void Disconnect()
+        private void Disconnect()
         {
             DisconnectServer();
             RefreshTextBox("Стоп.");
             EnableComponents(true, "Старт");
         }
 
-        void Connect()
+        private void Connect()
         {
             try
             {
                 IPAddress ipAddress = IPAddress.Parse(comboBox1.Items[comboBox1.SelectedIndex].ToString());
-                listenThread = new Thread(Listen);
+                listenThread = new Thread(Listen)
+                {
+                    IsBackground = true
+                };
                 listenThread.Start(ipAddress);
                 RefreshTextBox("Старт.");
                 EnableComponents(false, "Стоп");
@@ -104,13 +105,14 @@ namespace ChatServer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (run)
+            if (!close)
             {
-                Disconnect();
+                e.Cancel = true;
+                ModifyStateForm(false);
             }
         }
 
-        void RefreshTextBox(string text)
+        private void RefreshTextBox(string text)
         {
             if (richTextBox1.InvokeRequired)
             {
@@ -131,7 +133,7 @@ namespace ChatServer
             }
         }
 
-        void Listen(object obj)
+        private void Listen(object obj)
         {
             try
             {
@@ -144,7 +146,10 @@ namespace ChatServer
                     {
                         Client client = new Client(tcpListener.AcceptTcpClient());
                         clients.Add(client);
-                        Thread clientThread = new Thread(Process);
+                        Thread clientThread = new Thread(Process)
+                        {
+                            IsBackground = true
+                        };
                         clientThread.Start(client);
                     }
                     else Thread.Sleep(2000);
@@ -157,7 +162,7 @@ namespace ChatServer
             }
         }
 
-        void DisconnectServer()
+        private void DisconnectServer()
         {
             try
             {
@@ -174,7 +179,7 @@ namespace ChatServer
             }
         }
 
-        internal void BroadcastMessage(string message, Guid id)
+        private void BroadcastMessage(string message, Guid id)
         {
             byte[] data = Encoding.Unicode.GetBytes(message);
             foreach (Client item in clients)
@@ -185,7 +190,7 @@ namespace ChatServer
                     {
                         item.NetworkStream.Write(data, 0, data.Length);
                     }
-                    catch (ObjectDisposedException exception)
+                    catch (Exception exception)
                     {
                         RefreshTextBox(exception.Message);
                     }
@@ -193,7 +198,7 @@ namespace ChatServer
             }
         }
 
-        void Process(object obj)
+        private void Process(object obj)
         {
             Client client = (Client)obj;
             string message = GetMessage(client);
@@ -202,16 +207,16 @@ namespace ChatServer
                 client.User = message;
                 message = string.Format("[{0}]{2} {1}[/{0}]", "adduser", client.User, client.ID.ToString());
                 BroadcastMessage(message, client.ID);
-                RefreshTextBox(string.Format("{0} вошел в чат.", client.User));
+                RefreshTextBox(string.Format("{0} присоединился к чату.", client.User));
                 StringBuilder stringBuilder = new StringBuilder("[users]");
                 if (clients.Count > 1)
                 {
                     List<string> list = new List<string>();
-                    for (int i = 0; i < clients.Count; i++)
+                    foreach (Client item in clients)
                     {
-                        if (client.ID != clients[i].ID)
+                        if (client.ID != item.ID)
                         {
-                            list.Add(clients[i].ID + " " + clients[i].User);
+                            list.Add(item.ID + " " + item.User);
                         }
                     }
                     stringBuilder.Append(string.Join(";", list));
@@ -229,7 +234,7 @@ namespace ChatServer
                         message = GetMessage(client);
                         if (message.Equals(string.Empty))
                             throw new Exception();
-                        message = String.Format("{0}: {1}", client.User, message);
+                        message = String.Format("[message]{0}: {1}", client.User, message.Replace("[message]", ""));
                         BroadcastMessage(message, client.ID);
                     }
                     catch
@@ -277,6 +282,35 @@ namespace ChatServer
                 RefreshTextBox(exception.Message);
             }
             return stringBuilder.ToString();
+        }
+
+        private void contextMenuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            if (e.ClickedItem.Equals(contextMenuStrip1.Items[0]))
+            {
+                ModifyStateForm(true);
+            }
+            else
+            {
+                if (run)
+                {
+                    Disconnect();
+                }
+                close = true;
+                Close();
+            }
+        }
+
+        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            ModifyStateForm(true);
+        }
+
+        public void ModifyStateForm(bool value)
+        {
+            WindowState = (value) ? FormWindowState.Normal : FormWindowState.Minimized;
+            notifyIcon1.Visible = !value;
+            this.ShowInTaskbar = value;
         }
     }
 }

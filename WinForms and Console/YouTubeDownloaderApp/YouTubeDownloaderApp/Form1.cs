@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using YoutubeExtractor;
@@ -20,6 +21,7 @@ namespace YouTubeDownloaderApp
             textBox1.Text = string.Empty;
             progressBar1.Value = 0;
             label3.Text = "0%";
+            textBox1.Enabled = true;
             progressBar1.Update();
         }
 
@@ -32,46 +34,59 @@ namespace YouTubeDownloaderApp
         {
             if (thread == null)
             {
-                try
+
+
+                if (Regex.IsMatch(textBox1.Text, "^([0-9a-zA-Z]){11}"))
                 {
-                    string url = textBox1.Text.Replace("https://", "http // ");
                     try
                     {
-                        url = url.Remove(url.IndexOf("&"));
-                    }
-                    catch
-                    {
-
-                    }
-                    IEnumerable<VideoInfo> videos = DownloadUrlResolver.GetDownloadUrls(url);
-                    VideoInfo video = videos.First(p => p.VideoType == VideoType.Mp4 && p.Resolution == Convert.ToInt32(comboBox1.Text));
-                    if (video != null)
-                    {
-                        if (video.RequiresDecryption)
+                        for (int i = 0; i < 5; i++)
                         {
-                            DownloadUrlResolver.DecryptDownloadUrl(video);
-                        }
-                        saveFileDialog1.FileName = video.Title;
-                        saveFileDialog1.InitialDirectory = Properties.Settings.Default.initialDirectory;
-                        if (saveFileDialog1.ShowDialog() == DialogResult.OK)
-                        {
-                            Properties.Settings.Default.initialDirectory = Path.GetDirectoryName(saveFileDialog1.FileName);
-                            Properties.Settings.Default.Save();
-                            downloader = new VideoDownloader(video, saveFileDialog1.FileName);
-                            downloader.DownloadProgressChanged += downloader_DownloadProgressChanged;
-                            downloader.DownloadFinished += downloader_DownloadFinished;
-                            thread = new Thread(() => { downloader.Execute(); })
+                            VideoInfo video = DownloadUrlResolver.GetDownloadUrls(string.Concat("https://www.youtube.com/watch?v=", textBox1.Text), false)
+                                                            .OrderByDescending(p => p.Resolution)
+                                                            .FirstOrDefault(p => p.VideoType == VideoType.Mp4 && p.Resolution <= Convert.ToInt32(comboBox1.Text) && p.AudioType != AudioType.Unknown);
+                            if (video != null)
                             {
-                                IsBackground = true
-                            };
-                            thread.Start();
-                            button1.Text = "&Cancel";
+                                saveFileDialog1.FileName = video.Title;
+                                saveFileDialog1.InitialDirectory = Properties.Settings.Default.initialDirectory;
+                                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+                                {
+                                    Properties.Settings.Default.initialDirectory = Path.GetDirectoryName(saveFileDialog1.FileName);
+                                    Properties.Settings.Default.Save();
+                                    if (video.RequiresDecryption)
+                                    {
+                                        DownloadUrlResolver.DecryptDownloadUrl(video);
+                                    }
+                                    downloader = new VideoDownloader(video, saveFileDialog1.FileName);
+                                    downloader.DownloadProgressChanged += downloader_DownloadProgressChanged;
+                                    downloader.DownloadFinished += downloader_DownloadFinished;
+                                    thread = new Thread(() => { downloader.Execute(); })
+                                    {
+                                        IsBackground = true
+                                    };
+                                    thread.Start();
+                                    button1.Text = "&Cancel";
+                                    textBox1.Enabled = false;
+                                }
+                            }
+                            else
+                            {
+                                MessageBox.Show("Видео не найдено!");
+                            }
+                            break;
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        if (!(exception is YoutubeParseException))
+                        {
+                            MessageBox.Show(exception.Message);
                         }
                     }
                 }
-                catch (Exception exception)
+                else
                 {
-                    MessageBox.Show(exception.Message);
+                    MessageBox.Show("Неверный адрес!");
                 }
             }
             else
@@ -82,7 +97,7 @@ namespace YouTubeDownloaderApp
 
                 }
                 downloader.DownloadProgressChanged -= downloader_DownloadProgressChanged;
-                downloader.DownloadFinished -= downloader_DownloadFinished;                
+                downloader.DownloadFinished -= downloader_DownloadFinished;
                 ResetForm();
                 try
                 {

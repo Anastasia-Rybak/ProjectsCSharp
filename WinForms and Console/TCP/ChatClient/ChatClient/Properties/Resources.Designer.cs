@@ -61,6 +61,98 @@ namespace ChatClient.Properties {
         }
         
         /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap cancel2 {
+            get {
+                object obj = ResourceManager.GetObject("cancel2", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap label {
+            get {
+                object obj = ResourceManager.GetObject("label", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на абажур
+        ///абажура
+        ///абажурам
+        ///абажурами
+        ///абажурах
+        ///абажуре
+        ///абажуров
+        ///абажуром
+        ///абажуру
+        ///абажуры
+        ///абак
+        ///абака
+        ///абакам
+        ///абаками
+        ///абаках
+        ///абаке
+        ///абаки
+        ///абаков
+        ///абаком
+        ///абаку
+        ///аббат
+        ///аббата
+        ///аббатам
+        ///аббатами
+        ///аббатах
+        ///аббате
+        ///аббатис
+        ///аббатиса
+        ///аббатисам
+        ///аббатисами
+        ///аббатисах
+        ///аббатисе
+        ///аббатисой
+        ///аббатисою
+        ///аббатису
+        ///аббатисы
+        ///аббатов
+        ///аббатом
+        ///аббатская
+        ///аббатские
+        ///аббатский
+        ///аббатским
+        ///аббатскими
+        ///аббатских
+        ///аббатского
+        ///аббатское
+        ///аббатской
+        ///аббатском
+        ///аббатскому
+        ///аббатскою
+        ///аббатскую
+        ///аббатств
+        ///аббатства
+        ///а [остаток строки не уместился]&quot;;.
+        /// </summary>
+        internal static string Russian {
+            get {
+                return ResourceManager.GetString("Russian", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap sound {
+            get {
+                object obj = ResourceManager.GetObject("sound", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Поиск локализованного ресурса типа System.IO.UnmanagedMemoryStream, аналогичного System.IO.MemoryStream.
         /// </summary>
         internal static System.IO.UnmanagedMemoryStream zvuk_soobshcheniya_v_kontakte {
