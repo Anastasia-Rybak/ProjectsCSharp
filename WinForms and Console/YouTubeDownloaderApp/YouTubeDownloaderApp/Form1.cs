@@ -1,7 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -13,6 +15,9 @@ namespace YouTubeDownloaderApp
     {
         Thread thread;
         VideoDownloader downloader;
+
+        [DllImport("wininet.dll")]
+        private extern static bool InternetGetConnectedState(out int description, int reservedValue);
 
         private void ResetForm()
         {
@@ -34,59 +39,90 @@ namespace YouTubeDownloaderApp
         {
             if (thread == null)
             {
-
-
-                if (Regex.IsMatch(textBox1.Text, "^([0-9a-zA-Z]){11}"))
+                if (Regex.IsMatch(textBox1.Text, "^([-_0-9a-zA-Z]){11}"))
                 {
-                    try
+                    int description;
+                    if (InternetGetConnectedState(out description, 0))
                     {
-                        for (int i = 0; i < 5; i++)
+                        if ((new Ping()).Send("www.youtube.com").Status == IPStatus.Success)
                         {
-                            VideoInfo video = DownloadUrlResolver.GetDownloadUrls(string.Concat("https://www.youtube.com/watch?v=", textBox1.Text), false)
-                                                            .OrderByDescending(p => p.Resolution)
-                                                            .FirstOrDefault(p => p.VideoType == VideoType.Mp4 && p.Resolution <= Convert.ToInt32(comboBox1.Text) && p.AudioType != AudioType.Unknown);
-                            if (video != null)
+                            for (int i = 0; i < 5; i++)
                             {
-                                saveFileDialog1.FileName = video.Title;
-                                saveFileDialog1.InitialDirectory = Properties.Settings.Default.initialDirectory;
-                                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+                                try
                                 {
-                                    Properties.Settings.Default.initialDirectory = Path.GetDirectoryName(saveFileDialog1.FileName);
-                                    Properties.Settings.Default.Save();
-                                    if (video.RequiresDecryption)
+                                    VideoInfo video = DownloadUrlResolver.GetDownloadUrls(string.Concat("https://www.youtube.com/watch?v=", textBox1.Text))
+                                                                    .OrderByDescending(p => p.Resolution)
+                                                                    .FirstOrDefault(p => p.VideoType == VideoType.Mp4 &&
+                                                                                        p.Resolution <= Convert.ToInt32(comboBox1.Text) &&
+                                                                                        p.AudioType != AudioType.Unknown);
+                                    if (video != null)
                                     {
-                                        DownloadUrlResolver.DecryptDownloadUrl(video);
+                                        saveFileDialog1.FileName = video.Title;
+                                        saveFileDialog1.InitialDirectory = Properties.Settings.Default.initialDirectory;
+                                        if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+                                        {
+                                            Properties.Settings.Default.initialDirectory = Path.GetDirectoryName(saveFileDialog1.FileName);
+                                            Properties.Settings.Default.Save();
+                                            downloader = new VideoDownloader(video, saveFileDialog1.FileName);
+                                            downloader.DownloadProgressChanged += downloader_DownloadProgressChanged;
+                                            downloader.DownloadFinished += downloader_DownloadFinished;
+                                            thread = new Thread(() => { downloader.Execute(); })
+                                            {
+                                                IsBackground = true
+                                            };
+                                            thread.Start();
+                                            button1.Text = "&Cancel";
+                                            textBox1.Enabled = false;
+                                        }
                                     }
-                                    downloader = new VideoDownloader(video, saveFileDialog1.FileName);
-                                    downloader.DownloadProgressChanged += downloader_DownloadProgressChanged;
-                                    downloader.DownloadFinished += downloader_DownloadFinished;
-                                    thread = new Thread(() => { downloader.Execute(); })
+                                    else
                                     {
-                                        IsBackground = true
-                                    };
-                                    thread.Start();
-                                    button1.Text = "&Cancel";
-                                    textBox1.Enabled = false;
+                                        MessageBox.Show("Video not found");
+                                    }
+                                    break;
+                                }
+                                catch (YoutubeParseException)
+                                {
+                                    if (i == 4)
+                                    {
+                                        MessageBox.Show("Video not found");
+                                    }
+                                }
+                                catch (WebException exception)
+                                {
+                                    if (exception.Status == WebExceptionStatus.ProtocolError)
+                                    {
+                                        switch ((exception.Response as HttpWebResponse).StatusCode)
+                                        {
+                                            case HttpStatusCode.Forbidden:
+                                                MessageBox.Show("Access denied");
+                                                break;
+                                            default:
+                                                MessageBox.Show("Unknown error");
+                                                break;
+                                        }
+                                    }
+                                }
+                                catch (Exception exception)
+                                {
+                                    MessageBox.Show(exception.Message);
+                                    break;
                                 }
                             }
-                            else
-                            {
-                                MessageBox.Show("Видео не найдено!");
-                            }
-                            break;
+                        }
+                        else
+                        {
+                            MessageBox.Show(@"URL https://www.youtube.com not available.");
                         }
                     }
-                    catch (Exception exception)
+                    else
                     {
-                        if (!(exception is YoutubeParseException))
-                        {
-                            MessageBox.Show(exception.Message);
-                        }
+                        MessageBox.Show("There is no Internet connection.");
                     }
                 }
                 else
                 {
-                    MessageBox.Show("Неверный адрес!");
+                    MessageBox.Show("Incorrect URL!");
                 }
             }
             else

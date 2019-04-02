@@ -31,9 +31,17 @@ namespace Clock
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool SetSystemTime([In] ref SYSTEMTIME st);
 
+        [DllImport("wininet.dll")]
+        private extern static bool InternetGetConnectedState(out int description, int reservedValue);
+
         public Form1()
         {
             InitializeComponent();
+            int description;
+            if (InternetGetConnectedState(out description, 0))
+            {
+                GetTime();
+            }
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -45,15 +53,15 @@ namespace Clock
                                            (int)numericUpDown1.Value,
                                            (int)numericUpDown4.Value,
                                            (int)numericUpDown5.Value,
-                                           0);
+                                           0).AddYears(2000).AddHours(-2);
                 SYSTEMTIME st = new SYSTEMTIME();
                 st.Day = (short)dt.Day;
                 st.Month = (short)dt.Month;
-                st.Year = (short)(dt.Year + 2000);
-                st.Hour = (short)(dt.Hour - 2);
+                st.Year = (short)(dt.Year);
+                st.Hour = (short)(dt.Hour);
                 st.Minute = (short)dt.Minute;
                 st.Second = (short)dt.Second;
-                st.Milliseconds = 0;
+                st.Milliseconds = (short)dt.Millisecond;
                 if (!SetSystemTime(ref st))
                 {
                     MessageBox.Show("Дата и время не установлены!");
@@ -91,49 +99,50 @@ namespace Clock
             numericUpDown5.Select(0, numericUpDown5.Text.Length);
         }
 
-        public static DateTime GetNetworkTime()
+        public DateTime GetNetworkTime()
         {
+            DateTime dt = new DateTime();
             try
             {
                 const string ntpServer = "pool.ntp.org";
-                // NTP message size - 16 bytes of the digest (RFC 2030)
-                var ntpData = new byte[48];
-                //Setting the Leap Indicator, Version Number and Mode values
-                ntpData[0] = 0x1B; //LI = 0 (no warning), VN = 3 (IPv4 only), Mode = 3 (Client Mode)
-                var addresses = Dns.GetHostEntry(ntpServer).AddressList;
-                //The UDP port number assigned to NTP is 123
-                var ipEndPoint = new IPEndPoint(addresses[0], 123);
-                //NTP uses UDP
-                using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                byte[] ntpData = new byte[48];
+                ntpData[0] = 0x1B;
+                IPAddress[] addresses = Dns.GetHostEntry(ntpServer).AddressList;
+                foreach (IPAddress item in addresses)
                 {
-                    socket.Connect(ipEndPoint);
-                    //Stops code hang if NTP is blocked
-                    socket.ReceiveTimeout = 3000;
-                    socket.Send(ntpData);
-                    socket.Receive(ntpData);
+                    try
+                    {
+                        IPEndPoint ipEndPoint = new IPEndPoint(item, 123);
+                        using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                        {
+                            socket.Connect(ipEndPoint);
+                            socket.ReceiveTimeout = 3000;
+                            socket.Send(ntpData);
+                            socket.Receive(ntpData);
+                        }
+                        const byte serverReplyTime = 40;
+                        ulong intPart = BitConverter.ToUInt32(ntpData, serverReplyTime);
+                        ulong fractPart = BitConverter.ToUInt32(ntpData, serverReplyTime + 4);
+                        intPart = SwapEndianness(intPart);
+                        fractPart = SwapEndianness(fractPart);
+                        ulong milliseconds = (intPart * 1000) + ((fractPart * 1000) / 0x100000000L);
+                        DateTime networkDateTime = (new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc)).AddMilliseconds((long)milliseconds);
+                        dt = networkDateTime.ToLocalTime();
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        
+                    }
                 }
-                //Offset to get to the "Transmit Timestamp" field (time at which the reply 
-                //departed the server for the client, in 64-bit timestamp format."
-                const byte serverReplyTime = 40;
-                //Get the seconds part
-                ulong intPart = BitConverter.ToUInt32(ntpData, serverReplyTime);
-                //Get the seconds fraction
-                ulong fractPart = BitConverter.ToUInt32(ntpData, serverReplyTime + 4);
-                //Convert From big-endian to little-endian
-                intPart = SwapEndianness(intPart);
-                fractPart = SwapEndianness(fractPart);
-                var milliseconds = (intPart * 1000) + ((fractPart * 1000) / 0x100000000L);
-                //**UTC** time
-                var networkDateTime = (new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc)).AddMilliseconds((long)milliseconds);
-                return networkDateTime.ToLocalTime();
             }
             catch (Exception)
             {
-                return new DateTime();
+                
             }
+            return dt;
         }
 
-        // stackoverflow.com/a/3294698/162671
         static uint SwapEndianness(ulong x)
         {
             return (uint)(((x & 0x000000ff) << 24) +
@@ -144,12 +153,20 @@ namespace Clock
 
         private void button2_Click(object sender, EventArgs e)
         {
+            GetTime();
+        }
+
+        private void GetTime()
+        {
             DateTime dt = GetNetworkTime();
-            numericUpDown1.Value = dt.Day;
-            numericUpDown2.Value = dt.Month;
-            numericUpDown3.Value = dt.Year % 100;
-            numericUpDown4.Value = dt.Hour;
-            numericUpDown5.Value = dt.Minute;
+            if (dt != new DateTime())
+            {
+                numericUpDown1.Value = dt.Day;
+                numericUpDown2.Value = dt.Month;
+                numericUpDown3.Value = dt.Year % 100;
+                numericUpDown4.Value = dt.Hour;
+                numericUpDown5.Value = dt.Minute;
+            }
         }
     }
 }
